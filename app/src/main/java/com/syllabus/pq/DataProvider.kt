@@ -24,6 +24,10 @@ class DataProvider {
         val updatedPlayers = quizRepository.getPlayers()
         players = mutableStateMapOf()
         players.putAll(updatedPlayers)
+        playerList = mutableStateListOf()
+        for(i in dataProvider.players){
+            dataProvider.playerList.add(i.value)
+        }
     }
     var tickets:MutableList<Ticket> = mutableStateListOf()
     var values = mutableStateOf(Values())
@@ -54,7 +58,8 @@ class DataProvider {
     val startIntentShare = mutableStateOf(false)
     val ticketDuration = mutableStateOf(2000)
     val ticketSlideView = mutableStateOf("ticket")
-
+    var ticketReady = mutableStateOf(false)
+    var thisTicket = mutableStateOf(Ticket())
     val showInfo = mutableStateOf(false)
     val showRankings = mutableStateOf(false)
     val showProfile = mutableStateOf(false)

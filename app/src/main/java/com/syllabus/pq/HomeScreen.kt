@@ -1,5 +1,6 @@
 package com.syllabus.pq
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -169,25 +170,32 @@ fun HomeScreen(ticketList: List<Ticket>){
                                 animationSpec = tween(durationMillis = 1000, easing = LinearOutSlowInEasing)
                             )
                         ) {
-                            TicketSlides(ticket = dataProvider.tickets[dataProvider.ticketIndex.value])
+                            TicketSlides(ticket = dataProvider.tickets[dataProvider.ticketIndex.value]){
+                                dataProvider.ticketReady.value=it
+                            }
                         }
                     }
                     "ads"->{
-                        dataProvider.ticketDuration.value = dataProvider.values.value.adDuration
                         AdsStack()
                     }
                 }
 
                 LaunchedEffect(dataProvider.playNoticeBoard.value){
                     //scope.launch{
-                    while(dataProvider.playNoticeBoard.value){
+                    withContext(Dispatchers.IO){
+                        while (dataProvider.playNoticeBoard.value) {
+                            if (dataProvider.ticketSlideView.value == "ticket"){
+                                delay(dataProvider.thisTicket.value.duration.toLong())
+                            }else if (dataProvider.ticketSlideView.value == "ads"){
+                                delay(dataProvider.values.value.adDuration.toLong())
+                            }
                             if (getNetworkStatus()) {
-
-                                delay(dataProvider.ticketDuration.value.toLong())
                                 if (dataProvider.ticketSlideView.value == "ticket") {
                                     dataProvider.ticketSlideView.value = "ads"
+                                    dataProvider.ticketReady.value = true
+                                    //dataProvider.ticketDuration.value =
+                                        //dataProvider.values.value.adDuration
                                 } else {
-
                                     if (dataProvider.ticketIndex.value < maxTicketIndex) {
                                         dataProvider.ticketIndex.value += 1
                                         dataProvider.ticketSlideView.value = "ticket"
@@ -197,6 +205,7 @@ fun HomeScreen(ticketList: List<Ticket>){
                                     }
                                 }
                             }
+                        }
                     }
                 }
 

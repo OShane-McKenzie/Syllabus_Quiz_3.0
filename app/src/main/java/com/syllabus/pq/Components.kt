@@ -395,7 +395,9 @@ fun AdsStack(){
 }
 
 @Composable
-fun TicketSlides(ticket: Ticket){
+fun TicketSlides(ticket: Ticket,ticketReady:(Boolean)->Unit={}){
+    //dataProvider.ticketDuration.value = ticket.duration
+    dataProvider.thisTicket.value = ticket
     Row(
         Modifier
             .fillMaxSize()
@@ -476,8 +478,8 @@ fun TicketSlides(ticket: Ticket){
                 .weight(1f)
                 .fillMaxHeight()
         )
-        dataProvider.ticketDuration.value = ticket.duration
     }
+    ticketReady(true)
 }
 
 @Composable
@@ -505,7 +507,6 @@ fun Confirm(runTask:()->Unit={}){
                         }else{
                             runTask()
                         }
-
                         dataProvider.showConfirmation.value = false
                     }
                 ) {
@@ -846,8 +847,6 @@ fun SplashScreen(){
                             }
 
                         }else{
-                            println(version.fullDecode().toDouble())
-                            println(dataProvider.values.value.version)
                             appNavigator.setViewState("update", updateHistory = false)
                         }
                     }else{
