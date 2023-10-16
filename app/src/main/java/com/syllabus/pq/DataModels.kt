@@ -24,8 +24,7 @@ data class Results(
     var chosen: String = "",
     var notes: String = "",
     var simpleAnswer:String = "",
-    var correctAnswerChosen:Boolean = false,
-
+    var correctAnswerChosen:Boolean = false
 )
 
 data class ScoreRecord(
@@ -60,6 +59,7 @@ data class Badge(
 )
 data class Values(
     var ads:Boolean = true,
+    var adDuration:Int = 60000,
     var version:Double = 1.0,
     var live:Boolean = false,
     var db1:String = "",

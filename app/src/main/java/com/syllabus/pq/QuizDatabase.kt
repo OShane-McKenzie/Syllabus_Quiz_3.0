@@ -2,20 +2,26 @@ package com.syllabus.pq
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.SheetsScopes
 import com.google.api.services.sheets.v4.model.UpdateValuesResponse
 import com.google.api.services.sheets.v4.model.ValueRange
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
 import java.io.ByteArrayInputStream
-import java.io.IOException
-import java.io.InputStreamReader
-import java.net.MalformedURLException
-import java.net.URL
 import java.util.Collections
+
+import com.google.api.services.docs.v1.Docs
+import com.google.api.services.docs.v1.DocsScopes
+import com.google.api.services.docs.v1.model.BatchUpdateDocumentRequest
+import com.google.api.services.docs.v1.model.DeleteContentRangeRequest
+import com.google.api.services.docs.v1.model.InsertTextRequest
+import com.google.api.services.docs.v1.model.Location
+import com.google.api.services.docs.v1.model.Range
+import com.google.api.services.docs.v1.model.Request
+import com.google.api.services.docs.v1.model.ReplaceAllTextRequest
+import com.google.api.services.docs.v1.model.SubstringMatchCriteria
+import java.io.IOException
 
 
 class QuizDatabase(private val credentialsJson: String = dataProvider.values.value.dba.fullDecode(),
@@ -71,66 +77,75 @@ class QuizDatabase(private val credentialsJson: String = dataProvider.values.val
         }
     }
 }
-//fun getEmployees(context: Context, resourceId: Int): String {
-//    val inputStream = context.resources.openRawResource(resourceId)
-//    val bufferedReader = BufferedReader(InputStreamReader(inputStream))
-//    val stringBuilder = StringBuilder()
-//    var line: String? = bufferedReader.readLine()
-//
-//    while (line != null) {
-//        stringBuilder.append(line)
-//        stringBuilder.append('\n')
-//        line = bufferedReader.readLine()
-//    }
-//
-//    bufferedReader.close()
-//    inputStream.close()
-//
-//    return stringBuilder.toString()
-//}
 
-//suspend fun getEmployees(api: String = empApi
-//    .toDecodedString()
-//    .decryptAes(DataEncode()
-//        .getKeys(1)
-//        .toDecodedString())): List<Employee> {
-//
-//    val data: MutableList<Employee> = mutableListOf()
-//    val typeToken = object : TypeToken<List<Employee>>() {}.type
-//    val gson = Gson()
-//
-//    try {
-//        val url = URL(api)
-//        val jsonText = withContext(Dispatchers.IO) {
-//            val reader = BufferedReader(InputStreamReader(url.openStream()))
-//            reader.readText()
-//        }
-//        val employees: List<Employee> = gson.fromJson(jsonText, typeToken)
-//        data.addAll(employees)
-//    } catch (e: MalformedURLException) {
-//        throw RuntimeException("Invalid URL: $api", e)
-//    } catch (e: IOException) {
-//        throw RuntimeException("Error reading data from URL: $api", e)
-//    } catch (e: Exception) {
-//        throw RuntimeException("Error parsing JSON data from URL: $api", e)
-//    }
-//
-//    return data
-//}
 
-//suspend fun getApi(api:String):String{
-//    try {
-//        val url = URL(api)
-//        val jsonText = withContext(Dispatchers.IO) {
-//            val reader = BufferedReader(InputStreamReader(url.openStream()))
-//            reader.readText()
-//        }
-//        return jsonText
-//    }catch (e: MalformedURLException) {
-//        throw RuntimeException("Invalid URL: $api", e)
-//    } catch (e: IOException) {
-//        throw RuntimeException("Error reading data from URL: $api", e)
-//    } catch (e: Exception) {
-//        throw RuntimeException("Error parsing JSON data from URL: $api", e)
-//    }
-//}
+class QuizDatabaseV2(private val credentialsJson: String = dataProvider.values.value.dba.fullDecode(),
+                         private val applicationName: String = "Promotional Syllabus Quiz") {
+
+    private val SCOPES = Collections.singletonList(DocsScopes.DOCUMENTS)
+    private val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
+    private val JSON_FACTORY = GsonFactory.getDefaultInstance()
+    private val docs: Docs = initializeDocsService()
+    private val docId = dataProvider.values.value.dbId.fullDecode()
+    private fun initializeDocsService(): Docs {
+        val credentials = GoogleCredential.fromStream(
+            ByteArrayInputStream(credentialsJson.toByteArray(Charsets.UTF_8))
+        ).createScoped(SCOPES)
+
+        return Docs.Builder(httpTransport, JSON_FACTORY, credentials)
+            .setApplicationName(applicationName)
+            .build()
+    }
+
+    fun readDocument(documentId: String = docId): String {
+        return try {
+            val response = docs.documents().get(documentId).execute()
+            val content = response.body.content?.joinToString("") { paragraph ->
+                paragraph.paragraph?.elements?.joinToString("") { element ->
+                    element.textRun?.content ?: ""
+                } ?: ""
+            } ?: ""
+            content.trim()
+        } catch (e: GoogleJsonResponseException) {
+            println("Error reading document: ${e.message}")
+            ""
+        } catch (e: IOException) {
+            println("Error reading document: ${e.message}")
+            ""
+        }
+    }
+
+
+    fun writeDocument(documentId: String = docId, content: String): Boolean {
+
+        return try {
+            val requests = mutableListOf<Request>()
+            val deleteContentRequest = Request().setDeleteContentRange(
+                DeleteContentRangeRequest()
+                    .setRange(Range().setStartIndex(1).setEndIndex(readDocument().length+1)) // Delete all content in the document
+            )
+            requests.add(deleteContentRequest)
+
+            // Insert new content at index 1 (or any other index you prefer)
+            val insertContentRequest = Request().setInsertText(
+                InsertTextRequest()
+                    .setText(content)
+                    .setLocation(Location().setIndex(1)) // Index 1 indicates the start of the document
+            )
+            requests.add(insertContentRequest)
+
+            // Execute the batch update request with both delete and insert requests
+            docs.documents().batchUpdate(documentId, BatchUpdateDocumentRequest().setRequests(requests)).execute()
+
+            true
+        } catch (e: GoogleJsonResponseException) {
+            println("Error writing document: ${e.message}")
+            false
+        } catch (e: IOException) {
+            println("Error writing document: ${e.message}")
+            false
+        }
+    }
+}
+
+

@@ -2,5 +2,7 @@
     <string name="app_name">Promotional Syllabus Quiz </string>
     <string name="ad_mob_test_banner_id">ca-app-pub-3940256099942544/6300978111</string>
     <string name="ad_mob_banner_id">ca-app-pub-4456071832600150/9428494730</string>
+    <string name="ad_mod_banner_id2">ca-app-pub-4456071832600150/3776751061</string>
+    <string name="ad_mob_banner_id3">ca-app-pub-4456071832600150/5622764324</string>
     <string name="native_ad">ca-app-pub-4456071832600150/5795102830</string>string>
 </resources>

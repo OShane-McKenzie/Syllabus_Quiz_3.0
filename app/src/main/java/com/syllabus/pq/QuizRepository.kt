@@ -1,7 +1,6 @@
 package com.syllabus.pq
 
 import androidx.compose.runtime.snapshots.SnapshotStateMap
-import com.google.api.services.sheets.v4.model.UpdateValuesResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -83,6 +82,16 @@ class QuizRepository {
             values
         }
     }
+    fun getValuesV2():Values{
+        return runBlocking {
+            val valuesApi = withContext(CoroutineScope(Dispatchers.IO).coroutineContext){
+                quizApiService.fetchApiData(valuesSource_v2.fullDecode())
+            }
+            val gson = Gson()
+            val values: Values = gson.fromJson(valuesApi, Values::class.java)
+            values
+        }
+    }
     fun getBadges():List<Badge>{
         return runBlocking {
             val badgesApi = withContext(CoroutineScope(Dispatchers.IO).coroutineContext){
@@ -94,26 +103,28 @@ class QuizRepository {
         }
     }
     fun getPlayers():Map<String, Player>{
-        val quizDatabase = QuizDatabase()
+        val quizDatabase = QuizDatabaseV2()
         return runBlocking {
             val playersApi = withContext(CoroutineScope(Dispatchers.IO).coroutineContext){
-                quizDatabase.readCell(range = dataProvider.values.value.db1.fullDecode())
+                //quizDatabase.readCell(range = dataProvider.values.value.db1.fullDecode())
+                quizDatabase.readDocument()
+
             }
 
             val gson = Gson()
             val playerType = object : TypeToken<Map<String, Player>>() {}.type
-            val players: Map<String, Player> = gson.fromJson(playersApi!!.decompressString(), playerType)
-            //println(playersApi.decompressString())
+            val players: Map<String, Player> = gson.fromJson(playersApi.decompressString(), playerType)
             players
         }
     }
 
-    fun writeToDb(snapshotStateMap: SnapshotStateMap<String, Player>): UpdateValuesResponse? {
-        val quizDatabase = QuizDatabase()
+    fun writeToDb(snapshotStateMap: SnapshotStateMap<String, Player>): Boolean {
+        val quizDatabase = QuizDatabaseV2()
         return runBlocking {
             withContext(CoroutineScope(Dispatchers.IO).coroutineContext){
-                val data = convertPlayersToJson(snapshotStateMap).compressString()
-                val response = quizDatabase.writeCellWithResponse(range = dataProvider.values.value.db1.fullDecode(), value = data)
+                val data = convertPlayersToJson(snapshotStateMap)
+                //val response = quizDatabase.writeCellWithResponse(range = dataProvider.values.value.db1.fullDecode(), value = data)
+                val response =quizDatabase.writeDocument(content = data.compressString())
                 response
             }
         }

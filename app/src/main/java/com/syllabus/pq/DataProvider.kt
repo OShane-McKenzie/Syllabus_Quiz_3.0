@@ -18,6 +18,7 @@ class DataProvider {
         confirmationMessage = mutableStateOf("")
         exitQuiz = mutableStateOf(false)
         currentQuiz = mutableStateOf("")
+        selectedOptions = mutableStateListOf<Map.Entry<String, String>>()
     }
     fun initPlayers(){
         val updatedPlayers = quizRepository.getPlayers()
@@ -26,6 +27,7 @@ class DataProvider {
     }
     var tickets:MutableList<Ticket> = mutableStateListOf()
     var values = mutableStateOf(Values())
+    var values_v2 = mutableStateOf(Values())
     var quizzes:MutableList<QuizData> = mutableStateListOf()
     var badges:MutableList<Badge> = mutableStateListOf()
     var players: SnapshotStateMap<String,Player> = mutableStateMapOf()
@@ -47,7 +49,7 @@ class DataProvider {
     var confirmationMessage = mutableStateOf("")
     var exitQuiz = mutableStateOf(false)
     var currentQuiz = mutableStateOf("")
-
+    var selectedOptions = mutableStateListOf<Map.Entry<String, String>>()
     val ticketIndex = mutableStateOf(0)
     val startIntentShare = mutableStateOf(false)
     val ticketDuration = mutableStateOf(2000)

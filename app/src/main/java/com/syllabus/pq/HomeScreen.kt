@@ -54,8 +54,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun HomeScreen(ticketList: List<Ticket>){
     val bgColors = listOf(
-        Color(0xFFAE6AEE),  // Purple
-        Color(0xFFFF00FF),  // Magenta
+        Color(0xFFB58ADD),  // Purple
+        Color(0xFFEBB2EB),  // Magenta
     )
     val scope = rememberCoroutineScope()
     val thisContext = LocalContext.current
@@ -173,7 +173,7 @@ fun HomeScreen(ticketList: List<Ticket>){
                         }
                     }
                     "ads"->{
-                        dataProvider.ticketDuration.value = 10000
+                        dataProvider.ticketDuration.value = dataProvider.values.value.adDuration
                         AdsStack()
                     }
                 }

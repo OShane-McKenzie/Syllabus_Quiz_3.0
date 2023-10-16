@@ -5,6 +5,7 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -47,6 +48,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -81,13 +83,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-
 @Composable
 fun QuestionAnswer(questionData: QuizData){
     val bgColors = listOf(
-        Color(0xFF8A2BE2),  // Purple
-        Color(0xFFFF00FF),  // Magenta
-        Color(0xFF0000FF)   // Blue
+        Color(0xFFB58ADD),  // Purple
+        Color(0xFFEBB2EB),  // Magenta
+        Color(0xFF9595F0)   // Blue
     )
 
     val scrollState = rememberScrollState()
@@ -97,6 +98,7 @@ fun QuestionAnswer(questionData: QuizData){
     var nextBtnTxt by remember {
         mutableStateOf("Next")
     }
+
     val maxQuestionIndex = questionData.count - 1
     val currentQuestion = questionData.questions[dataProvider.questionIterator.value]
     dataProvider.currentQuiz.value = questionData.title
@@ -113,7 +115,7 @@ fun QuestionAnswer(questionData: QuizData){
     ) {
         Spacer(modifier = Modifier.height(10.dp))
         if(dataProvider.values.value.ads){
-            val adID1 = stringResource(id = R.string.ad_mob_test_banner_id)
+            val adID1 = stringResource(id = R.string.ad_mob_banner_id)
             AndroidView(
                 factory = { context ->
                     AdView(context).apply {
@@ -144,40 +146,64 @@ fun QuestionAnswer(questionData: QuizData){
                 textAlign = TextAlign.Center)
         }
         Spacer(modifier = Modifier.height(15.dp))
-        Text(currentQuestion.question,
-            fontSize = 20.sp,
-            color = Color(0xFFDFF5F8),
-            fontWeight = FontWeight.Bold,
-            style = TextStyle(
-                shadow = Shadow(
-                    color = Color(0xFF0606EB),
-                    offset = Offset(2.0f, 5.0f),
-                    blurRadius = 2f
-                )
-            ), textAlign = TextAlign.Center
-        )
-
+        Column(Modifier.wrapContentSize().background(
+            brush = Brush.verticalGradient(listOf(Color(0xFFF8F8F8),
+                Color(0xFFBAC8DF)
+            ), startY = 0.0f, endY = 300.0f),
+            shape = RoundedCornerShape(6)
+        ).padding(4.dp)){
+            Spacer(modifier = Modifier.height(5.dp))
+            Text(
+                currentQuestion.question,
+                fontSize = 20.sp,
+                color = Color(0xFF827717),
+                fontWeight = FontWeight.Bold,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color(0xFFC8C9D1),
+                        offset = Offset(2.0f, 5.0f),
+                        blurRadius = 2f
+                    )
+                ), textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+        }
         Spacer(modifier = Modifier.height(25.dp))
+
         for (i in currentQuestion.options.options){
-            OptionCard(ans = i){first, second ->
-                dataProvider.answerHistory[currentQuestion.question]=Results(
-                    question = currentQuestion.question,
-                    correct = currentQuestion.answer.uppercase(Locale.ROOT)+
-                            ") ${currentQuestion.options.options[currentQuestion.answer]}",
-                    chosen = first,
-                    notes = currentQuestion.notes,
-                    simpleAnswer = second.uppercase(Locale.ROOT)
-                )
-                if (second.trim() == currentQuestion.answer.trim() &&
-                    dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen==false){
-                    dataProvider.currentScore.value+=1
-                    dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen = true
-                }else if (second.trim() != currentQuestion.answer.trim() &&
-                    dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen==true){
-                    dataProvider.currentScore.value-=1
-                    dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen = false
+            val isSelected = i.key == dataProvider.answerHistory[currentQuestion.question]?.chosen
+
+            OptionCard(ans = i, allOptions = currentQuestion.options.options) { first, second->
+                    for (h in currentQuestion.options.options){
+                        if(h in dataProvider.selectedOptions && h != i){
+                            dataProvider.selectedOptions.remove(h)
+                        }
+                    }
+                    dataProvider.selectedOptions.add(i)
+
+                    dataProvider.answerHistory[currentQuestion.question] = Results(
+                        question = currentQuestion.question,
+                        correct = currentQuestion.answer.uppercase(Locale.ROOT) +
+                                ") ${currentQuestion.options.options[currentQuestion.answer]}",
+                        chosen = first,
+                        notes = currentQuestion.notes,
+                        simpleAnswer = second.uppercase(Locale.ROOT),
+                    )
+
+                    if (second.trim() == currentQuestion.answer.trim() &&
+                        dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen == false
+                    ) {
+                        dataProvider.currentScore.value += 1
+                        dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen =
+                            true
+                    } else if (second.trim() != currentQuestion.answer.trim() &&
+                        dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen == true
+                    ) {
+                        dataProvider.currentScore.value -= 1
+                        dataProvider.answerHistory[currentQuestion.question]?.correctAnswerChosen =
+                            false
+                    }
                 }
-            }
             Spacer(modifier = Modifier.height(20.dp))
         }
 
@@ -244,30 +270,51 @@ fun QuestionAnswer(questionData: QuizData){
 }
 
 @Composable
-fun OptionCard(ans:Map.Entry<String, String>,callBack:(String,String)->Unit={_,_->}){
+fun OptionCard(
+    ans: Map.Entry<String, String>,
+    allOptions: Map<String,String>,
+    callBack: (String, String) -> Unit = { _, _ -> }
+) {
     val selectedColor by remember {
-        mutableStateOf(Color(0xFFEE73EC))
+        mutableStateOf(Color(0xFF0452F8))
+    }
+    var highlight by remember {
+        mutableStateOf(false)
     }
 
-    Column (
+    highlight = ans in dataProvider.selectedOptions
+
+    val borderColor by animateColorAsState(targetValue = if (highlight) selectedColor else Color.Transparent)
+
+    Column(
         modifier = Modifier
             .border(
-                BorderStroke(width = 2.dp, color = selectedColor),
+                BorderStroke(width = 2.dp, color = borderColor),
                 shape = RoundedCornerShape(6)
             )
             .wrapContentHeight()
             .fillMaxWidth(0.9f)
-            .background(color = Color(0xFFFFFFFF).copy(alpha = 1.0f), shape = RoundedCornerShape(6))
+            .background(
+                brush = Brush.verticalGradient(listOf(Color(0xFFF8F8F8),
+                    Color(0xFFE0D6EB)
+                ), startY = 0.0f, endY = 300.0f),
+                shape = RoundedCornerShape(6)
+            )
             .padding(2.dp)
             .clickable(onClick = {
                 callBack("${ans.key.uppercase(Locale.ROOT)}) ${ans.value}", ans.key)
-
             }),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
-    ){
+    ) {
         Spacer(modifier = Modifier.height(8.dp))
-        Text(color = Color(0xFF0C6F5E), text = "${ans.key.uppercase(Locale.ROOT)}) ${ ans.value }", fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
+        Text(
+            color = Color(0xFF0C6F5E),
+            text = "${ans.key.uppercase(Locale.ROOT)}) ${ans.value}",
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center
+        )
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
@@ -275,8 +322,8 @@ fun OptionCard(ans:Map.Entry<String, String>,callBack:(String,String)->Unit={_,_
 @Composable
 fun QuizThumbnail(quizData: QuizData){
     val bgColors = listOf(
-        Color(0xFFEB3BFF),  // Purple
-        Color(0xFF03A9F4),  // Magenta
+        Color(0xFF640B6F),  // Purple
+        Color(0xFF73C2E6),  // Magenta
     )
     Column (
         modifier = Modifier
@@ -284,7 +331,7 @@ fun QuizThumbnail(quizData: QuizData){
             .height(80.dp)
             .width(120.dp)
             .background(
-                brush = Brush.verticalGradient(bgColors, startY = 0.0f, endY = 500.0f)
+                brush = Brush.verticalGradient(bgColors, startY = 0.0f, endY = 500.0f), shape = RoundedCornerShape(6)
             )
             //.background(color = Color(0xFFFFFFFF).copy(alpha = 0.8f), shape = RoundedCornerShape(6))
             .padding(2.dp)
@@ -297,7 +344,7 @@ fun QuizThumbnail(quizData: QuizData){
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        Text(color = Color(0xFFCACACA), text = quizData.title, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.Center)
+        Text(color = Color(0xFFF8F7F7), text = quizData.title, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(4.dp))
         Text(color = Color(0xFFF8FAFA), text = "Questions: ${quizData.count}", fontSize = 12.sp, textAlign = TextAlign.Center)
     }
@@ -305,9 +352,9 @@ fun QuizThumbnail(quizData: QuizData){
 
 @Composable
 fun AdsStack(){
-    val adID1 = stringResource(id = R.string.ad_mob_test_banner_id)
-    val adID2 = stringResource(id = R.string.ad_mob_test_banner_id)
-    val adID3 = stringResource(id = R.string.ad_mob_test_banner_id)
+    val adID1 = stringResource(id = R.string.ad_mob_banner_id)
+    val adID2 = stringResource(id = R.string.ad_mod_banner_id2)
+    val adID3 = stringResource(id = R.string.ad_mob_banner_id3)
     if(dataProvider.values.value.ads) {
         AndroidView(
             factory = { context ->
@@ -565,20 +612,32 @@ fun ResultsView(){
                 setQuiz.star = star
             }
             if(setQuiz.score<score){
-                setQuiz.score = score
+                if(score>100.0){
+                    setQuiz.score = 100.0
+                }else{
+                    setQuiz.score = score
+                }
+
             }
             dataProvider.loggedInPlayer.value.history[index]=setQuiz
         }else{
             setQuiz.quiz = quiz
             setQuiz.star = star
-            setQuiz.score = score
+            if(score>100.0){
+                setQuiz.score = 100.0
+            }else{
+                setQuiz.score = score
+            }
+
             dataProvider.loggedInPlayer.value.history.add(setQuiz)
         }
         var totalStars = 0
         for(i in dataProvider.loggedInPlayer.value.history){
            totalStars += i.star
         }
+
         dataProvider.loggedInPlayer.value.stars = totalStars
+
     }
 
     LaunchedEffect(Unit){
@@ -589,7 +648,7 @@ fun ResultsView(){
                 updatePlayerRecord(score = roundedPercentage.toDouble(), star = stars)
                 dataProvider.players[dataProvider.loggedInPlayer.value.id] = dataProvider.loggedInPlayer.value
                 val update = quizRepository.writeToDb(dataProvider.players)
-                if (update == null){
+                if (!update){
                     withContext(Dispatchers.Main){
                         getToast(context,"Unable to update record at this time.")
                     }
@@ -612,6 +671,20 @@ fun ResultsView(){
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(5.dp))
+        if(dataProvider.values.value.ads){
+            val adID1 = stringResource(id = R.string.ad_mod_banner_id2)
+            AndroidView(
+                factory = { context ->
+                    AdView(context).apply {
+                        setAdSize(AdSize.BANNER)
+                        adUnitId = adID1
+                        loadAd(AdRequest.Builder().build())
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+        }
         Row(
             modifier = Modifier
                 .fillMaxHeight(0.1f)
@@ -735,11 +808,13 @@ fun SplashScreen(){
                 if (getNetworkStatus()){
                     dataProvider.quizzes = quizRepository.getQuizzes().toMutableStateList()
                     dataProvider.tickets = quizRepository.getTickets().toMutableStateList()
-                    dataProvider.values.value = quizRepository.getValues()
+                    //dataProvider.values.value = quizRepository.getValues()
+                    dataProvider.values.value = quizRepository.getValuesV2()
                     dataProvider.badges = quizRepository.getBadges().toMutableStateList()
                     delay(2000)
                     if(dataProvider.values.value.live) {
-                        if(dataProvider.values.value.version.toString().fullEncode()==version){
+                        if(dataProvider.values.value.version <=  version.fullDecode().toDouble()){
+
                             dataProvider.players.putAll(quizRepository.getPlayers())
                             for(i in dataProvider.players){
                                 dataProvider.playerList.add(i.value)
@@ -752,19 +827,27 @@ fun SplashScreen(){
                                             dataProvider.loggedInPlayer.value = dataProvider.players[i.key]!!
                                             isLoggedIn = true
                                             break
+                                        }else{
+                                            isLoggedIn = false
+                                            break
                                         }
                                     }
                                 }
                                 if (isLoggedIn) {
+
                                     appNavigator.setViewState("home", updateHistory = false){
                                         isLoggedIn = false
                                     }
+                                }else{
+                                    appNavigator.setViewState("login", updateHistory = false)
                                 }
                             }else{
                                 appNavigator.setViewState("login", updateHistory = false)
                             }
 
                         }else{
+                            println(version.fullDecode().toDouble())
+                            println(dataProvider.values.value.version)
                             appNavigator.setViewState("update", updateHistory = false)
                         }
                     }else{
@@ -1031,6 +1114,8 @@ fun Login(){
                     appNavigator.setViewState("home", updateHistory = false){
                         isLoggedIn = false
                     }
+                }else{
+                    getToast(context,"Login failed. Check credentials.")
                 }
 
             }else{
@@ -1055,7 +1140,7 @@ fun Login(){
 
                         val saveOperation = quizRepository.writeToDb(dataProvider.players)
 
-                        if(saveOperation!=null){
+                        if(saveOperation){
                             saveCredentials(dataProvider.loggedInPlayer.value.id,
                                 dataProvider.loggedInPlayer.value.password)
 
@@ -1652,7 +1737,7 @@ fun Profile(player: Player= dataProvider.loggedInPlayer.value){
                                 dataProvider.players.remove(dataProvider.loggedInPlayer.value.id)
                                 dataProvider.loggedInPlayer.value = Player()
                                 val update = quizRepository.writeToDb(dataProvider.players)
-                                if (update != null) {
+                                if (update) {
                                     withContext(Dispatchers.Main) {
                                         getToast(
                                             context = context,
@@ -1763,11 +1848,19 @@ fun Profile(player: Player= dataProvider.loggedInPlayer.value){
                                 dataProvider.loggedInPlayer.value.password = newPassword.trim().fullEncode()
                                 scope.launch {
                                     withContext(Dispatchers.IO) {
+                                        val sharedPreferences = context.getSharedPreferences(
+                                            "credentials",
+                                            Context.MODE_PRIVATE
+                                        )
+                                        val editor = sharedPreferences.edit()
+                                        editor.putString("id", "")
+                                        editor.putString("password", "")
+                                        editor.apply()
                                         dataProvider.initPlayers()
                                         dataProvider.players[dataProvider.loggedInPlayer.value.id] =
                                             dataProvider.loggedInPlayer.value
                                         val update = quizRepository.writeToDb(dataProvider.players)
-                                        if (update != null) {
+                                        if (update) {
                                             withContext(Dispatchers.Main) {
                                                 getToast(
                                                     context = context,
@@ -1777,6 +1870,9 @@ fun Profile(player: Player= dataProvider.loggedInPlayer.value){
                                             withContext(Dispatchers.Main) {
                                                 showDialog = false
                                                 dataProvider.showProfile.value = false
+                                                appNavigator.setViewState("login", updateHistory = false, clearHistory = true){
+                                                    dataProvider.showProfile.value = false
+                                                }
                                             }
                                         } else {
 
@@ -1802,7 +1898,7 @@ fun Profile(player: Player= dataProvider.loggedInPlayer.value){
                                     dataProvider.players[dataProvider.loggedInPlayer.value.id] =
                                         dataProvider.loggedInPlayer.value
                                     val update = quizRepository.writeToDb(dataProvider.players)
-                                    if (update != null) {
+                                    if (update) {
                                         withContext(Dispatchers.Main) {
                                             getToast(
                                                 context = context,

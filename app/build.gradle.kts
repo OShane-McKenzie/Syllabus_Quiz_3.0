@@ -12,8 +12,8 @@ android {
         applicationId = "com.syllabus.pq"
         minSdk = 28
         targetSdk = 33
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 23
+        versionName = "3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -80,4 +80,8 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-drawablepainter:0.30.1")
     implementation ("com.google.zxing:core:3.4.1")
     implementation ("org.apache.commons:commons-compress:1.21")
+
+    implementation ("com.google.api-client:google-api-client:2.0.0")
+    implementation ("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
+    implementation ("com.google.apis:google-api-services-docs:v1-rev20220609-2.0.0")
 }
