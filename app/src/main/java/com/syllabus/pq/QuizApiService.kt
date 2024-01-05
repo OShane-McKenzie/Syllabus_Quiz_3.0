@@ -37,16 +37,7 @@ class QuizApiService {
 
         return data
     }
-//    fun printSources(){
-//        runBlocking {
-//            val db = withContext(CoroutineScope(Dispatchers.IO).coroutineContext){
-//                getQuizSources("https://oshane-mckenzie.github.io/syllabus_quiz/sources.json")
-//            }
-//            for(i in db){
-//                println(i)
-//            }
-//        }
-//    }
+
     suspend fun fetchApiData(api:String):String{
         val url = URL(api)
         val jsonText = withContext(Dispatchers.IO) {

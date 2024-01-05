@@ -23,6 +23,7 @@ fun getToast(context: Context, msg:String){
         Toast.LENGTH_SHORT
     ).show()
 }
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

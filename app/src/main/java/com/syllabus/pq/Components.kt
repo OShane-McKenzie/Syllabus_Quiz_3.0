@@ -48,7 +48,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -146,12 +145,19 @@ fun QuestionAnswer(questionData: QuizData){
                 textAlign = TextAlign.Center)
         }
         Spacer(modifier = Modifier.height(15.dp))
-        Column(Modifier.wrapContentSize().background(
-            brush = Brush.verticalGradient(listOf(Color(0xFFF8F8F8),
-                Color(0xFFBAC8DF)
-            ), startY = 0.0f, endY = 300.0f),
-            shape = RoundedCornerShape(6)
-        ).padding(4.dp)){
+        Column(
+            Modifier
+                .wrapContentSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFF8F8F8),
+                            Color(0xFFBAC8DF)
+                        ), startY = 0.0f, endY = 300.0f
+                    ),
+                    shape = RoundedCornerShape(6)
+                )
+                .padding(4.dp)){
             Spacer(modifier = Modifier.height(5.dp))
             Text(
                 currentQuestion.question,
@@ -295,9 +301,12 @@ fun OptionCard(
             .wrapContentHeight()
             .fillMaxWidth(0.9f)
             .background(
-                brush = Brush.verticalGradient(listOf(Color(0xFFF8F8F8),
-                    Color(0xFFE0D6EB)
-                ), startY = 0.0f, endY = 300.0f),
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFF8F8F8),
+                        Color(0xFFE0D6EB)
+                    ), startY = 0.0f, endY = 300.0f
+                ),
                 shape = RoundedCornerShape(6)
             )
             .padding(2.dp)
@@ -331,7 +340,8 @@ fun QuizThumbnail(quizData: QuizData){
             .height(80.dp)
             .width(120.dp)
             .background(
-                brush = Brush.verticalGradient(bgColors, startY = 0.0f, endY = 500.0f), shape = RoundedCornerShape(6)
+                brush = Brush.verticalGradient(bgColors, startY = 0.0f, endY = 500.0f),
+                shape = RoundedCornerShape(6)
             )
             //.background(color = Color(0xFFFFFFFF).copy(alpha = 0.8f), shape = RoundedCornerShape(6))
             .padding(2.dp)
@@ -693,7 +703,7 @@ fun ResultsView(){
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Text("Quiz: ${dataProvider.currentQuiz.value}}",
+            Text("Quiz: ${dataProvider.currentQuiz.value}",
                 textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
             Text("Your score: $roundedPercentage%",
                 textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
@@ -768,6 +778,7 @@ fun SplashScreen(){
     var isOffline by remember {
         mutableStateOf(false)
     }
+    val scope = rememberCoroutineScope()
     fun getNetworkStatus(): Boolean {
         return runBlocking {
             val net = withContext(CoroutineScope(Dispatchers.IO).coroutineContext){
@@ -782,6 +793,63 @@ fun SplashScreen(){
         pass = sharedPreferences.getString("password", "") ?: ""
     }
     val context = LocalContext.current
+    fun initLogin(){
+        if(dataProvider.values.value.version <=  version.fullDecode().toDouble()){
+
+            scope.launch {
+                withContext(Dispatchers.Main){ getToast(context, "1") }
+            }
+            dataProvider.players.putAll(quizRepository.getPlayers())
+            for(i in dataProvider.players){
+                dataProvider.playerList.add(i.value)
+            }
+            scope.launch {
+                withContext(Dispatchers.Main){ getToast(context, "1.1") }
+            }
+            loadCredentials()
+            if(id!=""&&pass!=""){
+                scope.launch {
+                    withContext(Dispatchers.Main){ getToast(context, "2") }
+                }
+                for (i in dataProvider.players) {
+                    if (i.key == id.trim()) {
+                        if (pass.trim() == i.value.password) {
+                            dataProvider.loggedInPlayer.value = dataProvider.players[i.key]!!
+                            isLoggedIn = true
+                            break
+                        }else{
+                            isLoggedIn = false
+                            break
+                        }
+                    }
+                }
+                if (isLoggedIn) {
+                    scope.launch {
+                        withContext(Dispatchers.Main){ getToast(context, "3") }
+                    }
+                    appNavigator.setViewState("home", updateHistory = false){
+                        isLoggedIn = false
+                    }
+                }else{
+                    scope.launch {
+                        withContext(Dispatchers.Main){ getToast(context, "4") }
+                    }
+                    appNavigator.setViewState("login", updateHistory = false)
+                }
+            }else{
+                scope.launch {
+                    withContext(Dispatchers.Main){ getToast(context, "5") }
+                }
+                appNavigator.setViewState("login", updateHistory = false)
+            }
+
+        }else{
+            scope.launch {
+                withContext(Dispatchers.Main){ getToast(context, "6") }
+            }
+            appNavigator.setViewState("update", updateHistory = false)
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -807,49 +875,21 @@ fun SplashScreen(){
         LaunchedEffect(Unit) {
             withContext(Dispatchers.IO){
                 if (getNetworkStatus()){
-                    dataProvider.quizzes = quizRepository.getQuizzes().toMutableStateList()
-                    dataProvider.tickets = quizRepository.getTickets().toMutableStateList()
-                    //dataProvider.values.value = quizRepository.getValues()
-                    dataProvider.values.value = quizRepository.getValuesV2()
-                    dataProvider.badges = quizRepository.getBadges().toMutableStateList()
+                    withContext(Dispatchers.Main){ getToast(context, "7") }
+                    scope.launch{
+                        withContext(Dispatchers.IO){
+                            dataProvider.quizzes = quizRepository.getQuizzes().toMutableStateList()
+                            dataProvider.tickets = quizRepository.getTickets().toMutableStateList()
+                            dataProvider.values.value = quizRepository.getValuesV2()
+                            dataProvider.badges = quizRepository.getBadges().toMutableStateList()
+                        }
+                    }
                     delay(2000)
                     if(dataProvider.values.value.live) {
-                        if(dataProvider.values.value.version <=  version.fullDecode().toDouble()){
-
-                            dataProvider.players.putAll(quizRepository.getPlayers())
-                            for(i in dataProvider.players){
-                                dataProvider.playerList.add(i.value)
-                            }
-                            loadCredentials()
-                            if(id!=""&&pass!=""){
-                                for (i in dataProvider.players) {
-                                    if (i.key == id.trim()) {
-                                        if (pass.trim() == i.value.password) {
-                                            dataProvider.loggedInPlayer.value = dataProvider.players[i.key]!!
-                                            isLoggedIn = true
-                                            break
-                                        }else{
-                                            isLoggedIn = false
-                                            break
-                                        }
-                                    }
-                                }
-                                if (isLoggedIn) {
-
-                                    appNavigator.setViewState("home", updateHistory = false){
-                                        isLoggedIn = false
-                                    }
-                                }else{
-                                    appNavigator.setViewState("login", updateHistory = false)
-                                }
-                            }else{
-                                appNavigator.setViewState("login", updateHistory = false)
-                            }
-
-                        }else{
-                            appNavigator.setViewState("update", updateHistory = false)
-                        }
+                        withContext(Dispatchers.Main){ getToast(context, "8") }
+                        initLogin()
                     }else{
+                        withContext(Dispatchers.Main){ getToast(context, "9") }
                         appNavigator.setViewState("offline", updateHistory = false)
                     }
                 }else{
@@ -893,6 +933,7 @@ fun UpdateApp(){
 
 @Composable
 fun Offline(msg:String="This App is offline."){
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -903,6 +944,16 @@ fun Offline(msg:String="This App is offline."){
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Text(msg)
+        LaunchedEffect(Unit ){
+            withContext(Dispatchers.IO){
+                while (true){
+                    if(isInternetConnected(context)){
+                        appNavigator.setViewState("splash")
+                        break
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1585,6 +1636,7 @@ fun Rankings(){
         }) {
             Text(text ="Close")
         }
+        if(showDetails){
             OutlinedTextField(
                 value = filterText,
                 onValueChange = { filterText = it },
@@ -1597,6 +1649,7 @@ fun Rankings(){
                     .fillMaxWidth()
                     .padding(10.dp)
             )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize(),

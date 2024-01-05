@@ -209,8 +209,6 @@ fun String.encryptAes(secretKey: String): String {
     return Base64.getEncoder().encodeToString(encryptedBytes)
 }
 
-
-
 // Extension function to decrypt an AES encrypted string
 @SuppressLint("GetInstance")
 fun String.decryptAes(secretKey: String): String {

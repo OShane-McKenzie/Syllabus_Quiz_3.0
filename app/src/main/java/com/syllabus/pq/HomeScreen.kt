@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -61,6 +62,21 @@ fun HomeScreen(ticketList: List<Ticket>){
     val scope = rememberCoroutineScope()
     val thisContext = LocalContext.current
     val maxTicketIndex = ticketList.size - 1
+
+    LaunchedEffect(Unit) {
+
+        if (dataProvider.quizzes.size<=1) {
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    dataProvider.quizzes = quizRepository.getQuizzes().toMutableStateList()
+                    dataProvider.tickets = quizRepository.getTickets().toMutableStateList()
+                    dataProvider.values.value = quizRepository.getValuesV2()
+                    dataProvider.badges = quizRepository.getBadges().toMutableStateList()
+                }
+            }
+        }
+
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
